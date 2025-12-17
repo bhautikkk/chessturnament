@@ -146,6 +146,7 @@ io.on('connection', (socket) => {
                 message: `${resigningPlayer.name} resigned. ${winnerColor} wins!`
             });
             room.gameStarted = false; // Or keep active for view? Better to stop.
+            io.to(roomCode).emit('update_lobby', room); // SYNC FIX
         }
     });
 
@@ -182,6 +183,7 @@ io.on('connection', (socket) => {
                     message: `Time's up! ${winner} Wins!`
                 });
                 room.gameStarted = false;
+                io.to(roomCode).emit('update_lobby', room); // SYNC FIX
                 return;
             }
 
@@ -218,6 +220,7 @@ io.on('connection', (socket) => {
                 lastMove: lastMove // Pass last move to preserve history if possible
             });
             room.gameStarted = false;
+            io.to(roomCode).emit('update_lobby', room); // SYNC FIX
         }
     });
 
@@ -230,6 +233,7 @@ io.on('connection', (socket) => {
                 message: 'Game ended in a Draw (Mutual Agreement)'
             });
             room.gameStarted = false;
+            io.to(roomCode).emit('update_lobby', room); // SYNC FIX
         }
     });
 

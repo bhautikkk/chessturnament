@@ -65,6 +65,14 @@ const pieceSymbols = {
     'P': 'https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg'
 };
 
+// Audio Effects
+const sounds = {
+    move: new Audio('move.mp3'),
+    capture: new Audio('capture.mp3'),
+    castle: new Audio('castle.mp3'),
+    checkmate: new Audio('checkmate.mp3')
+};
+
 const pieceValues = {
     'p': 1,
     'n': 3,
@@ -165,6 +173,35 @@ function goToMove(index) {
     }
 
     renderBoard();
+}
+
+function playSound(move) {
+    if (!move) return;
+
+    // Checkmate has priority
+    if (game.in_checkmate()) {
+        sounds.checkmate.currentTime = 0;
+        sounds.checkmate.play().catch(e => console.warn("Audio blocked", e));
+        return;
+    }
+
+    // Capture (flags contains 'c' or 'e')
+    if (move.flags.includes('c') || move.flags.includes('e')) {
+        sounds.capture.currentTime = 0;
+        sounds.capture.play().catch(e => console.warn("Audio blocked", e));
+        return;
+    }
+
+    // Castle (flags contains 'k' or 'q')
+    if (move.flags.includes('k') || move.flags.includes('q')) {
+        sounds.castle.currentTime = 0;
+        sounds.castle.play().catch(e => console.warn("Audio blocked", e));
+        return;
+    }
+
+    // Standard Move
+    sounds.move.currentTime = 0;
+    sounds.move.play().catch(e => console.warn("Audio blocked", e));
 }
 
 // Toast Helper
@@ -466,6 +503,20 @@ socket.on('error_message', (msg) => {
 
 socket.on('update_lobby', (room) => {
     currentRoom = room;
+
+    // SYNC FIX: Failsafe Game Over ID detection
+    if (isGameActive && !room.gameStarted) {
+        console.warn("Client Game Active but Server says Game Over. Forcing Sync.");
+        // Force cleanup if we missed the game_over event
+        isGameActive = false;
+        hasGameEnded = true;
+        if (timerInterval) clearInterval(timerInterval);
+
+        turnIndicator.innerText = "Game Over (Sync)";
+        if (btnPGN) btnPGN.classList.remove('hidden');
+        showToast("Game Ended (synced with server)");
+    }
+
     renderLobby(room);
 });
 
@@ -589,6 +640,7 @@ socket.on('move_made', ({ move, fen, whiteTime: wT, blackTime: bT }) => {
     if (fen && game.fen() !== fen) {
         // Try to play the move normally to keep animation
         const result = game.move(move);
+        if (result) playSound(result); // Play sound for opponent move
         // If normal move failed (super desync), force load
         if (!result || game.fen() !== fen) {
             game.load(fen);
@@ -1047,6 +1099,7 @@ function handleSquareClick(squareId) {
 
         const move = game.move(moveAttempt);
         if (move) {
+            playSound(move); // Play sound locally
             selectedSquare = null;
 
             // OPTIMISTIC TIMER UPDATE
