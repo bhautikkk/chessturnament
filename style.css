@@ -27,13 +27,15 @@ body {
     overflow-x: hidden;
     position: relative;
     /* Background Image Effect */
-    background: url('https://images.unsplash.com/photo-1610631066894-62452778e38f?q=80&w=2669&auto=format&fit=crop') no-repeat center center/cover;
+    background: url('https://images.unsplash.com/photo-1610631066894-62452778e38f?q=80&w=2669&auto=format&fit=crop') no-repeat center center/cover fixed;
+    background-color: var(--bg-color);
+    /* Fallback */
 }
 
 /* Overlay to darken bg */
 body::before {
     content: '';
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;

@@ -251,7 +251,14 @@ socket.on('draw_rejected', () => {
     showToast("Your offer is rejected", 2000);
 });
 
-socket.on('game_over', ({ reason, winner, message }) => {
+socket.on('game_over', ({ reason, winner, message, fen }) => {
+    // If final state provided, snap to it (Fixes race condition where Move is missed)
+    if (fen) {
+        game.load(fen);
+        renderBoard();
+        currentViewIndex = -1; // Ensure live
+    }
+
     isGameActive = false;
     hasGameEnded = true;
     if (timerInterval) clearInterval(timerInterval);
@@ -746,8 +753,10 @@ function updateTurnIndicator() {
         // Game just ended locally.
         // Emit claim to server to broadcast Game Over modal.
         // To prevent double emit, maybe only the winner claims? Or both is fine, server handles idempotency?
+        // Emit claim to server to broadcast Game Over modal.
+        // To prevent double emit, maybe only the winner claims? Or both is fine, server handles idempotency?
         // Simpler: Just emit. Server can just broadcast.
-        socket.emit('claim_game_over', { roomCode: currentRoom.code, reason, winner });
+        socket.emit('claim_game_over', { roomCode: currentRoom.code, reason, winner, fen: game.fen() });
         isGameActive = false; // Stop local checks
         return;
     }
