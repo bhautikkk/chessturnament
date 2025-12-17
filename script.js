@@ -18,6 +18,11 @@ const joinRoomBtn = document.getElementById('joinRoomBtn');
 const backToMenuBtn = document.getElementById('backToMenuBtn');
 const roomCodeInput = document.getElementById('roomCodeInput');
 const joinError = document.getElementById('joinError');
+const copyLinkBtn = document.getElementById('copyLinkBtn');
+
+// Check URL Params
+const urlParams = new URLSearchParams(window.location.search);
+const urlRoomCode = urlParams.get('room');
 
 // Lobby Elements
 const displayRoomCode = document.getElementById('displayRoomCode');
@@ -337,7 +342,18 @@ loginBtn.addEventListener('click', () => {
     const name = playerNameInput.value.trim();
     if (name) {
         myName = name;
-        showScreen('menu');
+
+        if (urlRoomCode) {
+            // Joiner Flow: Skip Menu, go to Join
+            roomCodeInput.value = urlRoomCode;
+            roomCodeInput.disabled = true; // Lock it
+            backToMenuBtn.style.display = 'none'; // No going back to menu
+            showScreen('join');
+            // Auto click join? Maybe let them click join to confirm name.
+        } else {
+            // Creator Flow: Normal Menu
+            showScreen('menu');
+        }
     }
 });
 
@@ -361,6 +377,20 @@ joinRoomBtn.addEventListener('click', () => {
         joinError.innerText = "Please enter a valid 6-digit code";
     }
 });
+
+if (copyLinkBtn) {
+    copyLinkBtn.addEventListener('click', () => {
+        if (currentRoom) {
+            const link = `${window.location.origin}/?room=${currentRoom.code}`;
+            navigator.clipboard.writeText(link).then(() => {
+                showToast("Link Copied!");
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                showToast("Failed to copy");
+            });
+        }
+    });
+}
 
 // Admin Lobby Controls
 startGameBtn.addEventListener('click', () => {
