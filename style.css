@@ -747,10 +747,10 @@ input,
     margin-left: 0;
 }
 
-/* Optional: expand on hover if user wants to see clearly, but maybe not for mobile */
-.player-dashboard:hover .captured-piece-icon {
-    margin-left: -2px;
-    /* Less overlap on hover */
+/* Hover effect removed to keep pieces compact */
+.player-dashboard:active .captured-piece-icon {
+    /* No change on click either */
+    margin-left: -10px;
 }
 
 .timer-box {
@@ -793,11 +793,12 @@ input,
 }
 
 .score-advantage {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
+    /* Smaller size */
     color: #aaa;
     font-weight: bold;
     background: rgba(255, 255, 255, 0.1);
-    padding: 1px 6px;
+    padding: 1px 5px;
     border-radius: 4px;
 }
 
