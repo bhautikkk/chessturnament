@@ -83,8 +83,8 @@ body::before {
     flex-direction: column;
     align-items: center;
     gap: 1.5rem;
-    min-width: 320px;
-    max-width: 90vw;
+    min-width: 280px;
+    max-width: 95vw;
     text-align: center;
 }
 
@@ -146,13 +146,15 @@ input:focus {
     box-shadow: none;
 }
 
-.glow-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 0 25px rgba(129, 182, 76, 0.6);
-}
+@media (hover: hover) {
+    .glow-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 0 25px rgba(129, 182, 76, 0.6);
+    }
 
-.glow-btn.outline:hover {
-    background: rgba(129, 182, 76, 0.1);
+    .glow-btn.outline:hover {
+        background: rgba(129, 182, 76, 0.1);
+    }
 }
 
 .glow-btn:disabled {
@@ -244,9 +246,11 @@ input:focus {
     transition: 0.2s;
 }
 
-.slot:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: var(--primary-color);
+@media (hover: hover) {
+    .slot:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: var(--primary-color);
+    }
 }
 
 .slot.filled {
@@ -402,16 +406,18 @@ input:focus {
     box-sizing: border-box;
 }
 
-.square.valid-move:hover::after {
-    background: rgba(0, 0, 0, 0.3);
-}
+@media (hover: hover) {
+    .square.valid-move:hover::after {
+        background: rgba(0, 0, 0, 0.3);
+    }
 
-.square.capture-move:hover::after {
-    border-color: rgba(0, 0, 0, 0.3);
-}
+    .square.capture-move:hover::after {
+        border-color: rgba(0, 0, 0, 0.3);
+    }
 
-.square.valid-move:hover {
-    background-color: var(--highlight-move) !important;
+    .square.valid-move:hover {
+        background-color: var(--highlight-move) !important;
+    }
 }
 
 .piece {
@@ -454,7 +460,7 @@ input:focus {
         width: 100%;
         max-width: 95vw;
         aspect-ratio: 1;
-        margin: 0 auto;
+        margin: 0.5rem auto;
         border: 2px solid #4488ff;
     }
 
@@ -465,6 +471,13 @@ input:focus {
 
     .game-container {
         padding: 0.5rem;
+        width: 100%;
+        border-radius: 0;
+        min-height: 100vh;
+        /* Ensure it covers full screen background */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
 
     .lobby-content {
@@ -473,16 +486,46 @@ input:focus {
 
     .screen {
         align-items: flex-start;
-        padding: 20px 0;
+        padding: 10px 0;
         overflow-y: auto;
-        height: auto;
-        min-height: 100%;
-        position: absolute;
     }
 
     body {
-        overflow-y: auto;
+        overscroll-behavior: none;
+        /* Prevent pull-to-refresh */
+        background-attachment: scroll;
+        /* Fix mobile background zoom issue */
     }
+
+    /* Mobile Tweaks */
+    .player-dashboard {
+        padding: 8px;
+    }
+
+    .avatar-circle {
+        width: 35px;
+        height: 35px;
+    }
+
+    .timer-box {
+        font-size: 1.2rem;
+        padding: 5px 10px;
+        min-width: 80px;
+    }
+
+    .small-title {
+        font-size: 1.2rem;
+    }
+}
+
+/* Global Touch Improvements */
+button,
+input,
+.slot,
+.square,
+.piece {
+    touch-action: manipulation;
+    /* Disable double-tap zoom */
 }
 
 /* Control Bar (History + Actions) */
