@@ -977,7 +977,10 @@ socket.on('reconnect_game', ({ roomCode, whitePlayerId, blackPlayerId, whiteName
     if (myColor === null) {
         // SPECTATOR: White at bottom, Black at top
         myNameDisplay.innerText = wNameDisplay; // "My" side (Bottom)
+        myNameDisplay.dataset.originalText = whiteName; // Fix: Store Original
+
         oppNameDisplay.innerText = bNameDisplay; // "Opp" side (Top)
+        oppNameDisplay.dataset.originalText = blackName; // Fix: Store Original
 
         if (whiteDisconnected) myNameDisplay.style.color = '#ff4444';
         else myNameDisplay.style.color = '';
@@ -990,7 +993,10 @@ socket.on('reconnect_game', ({ roomCode, whitePlayerId, blackPlayerId, whiteName
     else if (myColor === 'w') {
         // I AM WHITE
         myNameDisplay.innerText = wNameDisplay;
+        myNameDisplay.dataset.originalText = whiteName; // Fix: Store Original
+
         oppNameDisplay.innerText = bNameDisplay;
+        oppNameDisplay.dataset.originalText = blackName; // Fix: Store Original
 
         if (whiteDisconnected) myNameDisplay.style.color = '#ff4444';
         else myNameDisplay.style.color = '';
@@ -1003,7 +1009,10 @@ socket.on('reconnect_game', ({ roomCode, whitePlayerId, blackPlayerId, whiteName
     else if (myColor === 'b') {
         // I AM BLACK
         myNameDisplay.innerText = bNameDisplay;
+        myNameDisplay.dataset.originalText = blackName; // Fix: Store Original
+
         oppNameDisplay.innerText = wNameDisplay; // Opp is White
+        oppNameDisplay.dataset.originalText = whiteName; // Fix: Store Original
 
         if (blackDisconnected) myNameDisplay.style.color = '#ff4444';
         else myNameDisplay.style.color = '';
