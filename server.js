@@ -2,6 +2,9 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const fs = require('fs');
+
+const ROOMS_FILE = path.join(__dirname, 'rooms.json');
 
 const app = express();
 const server = http.createServer(app);
@@ -10,7 +13,32 @@ const io = new Server(server);
 // Serve static files
 app.use(express.static(path.join(__dirname, '.')));
 
-const rooms = {};
+let rooms = {};
+
+// Persistence Helpers
+function saveRooms() {
+    try {
+        fs.writeFileSync(ROOMS_FILE, JSON.stringify(rooms, null, 2));
+    } catch (err) {
+        console.error("Failed to save rooms:", err);
+    }
+}
+
+function loadRooms() {
+    try {
+        if (fs.existsSync(ROOMS_FILE)) {
+            const data = fs.readFileSync(ROOMS_FILE, 'utf8');
+            rooms = JSON.parse(data);
+            console.log("Loaded rooms from execution persistence.");
+        }
+    } catch (err) {
+        console.error("Failed to load rooms:", err);
+        rooms = {};
+    }
+}
+
+// Load on Startup
+loadRooms();
 
 // Game Loop: Check for timeouts every second
 setInterval(() => {
@@ -47,6 +75,7 @@ setInterval(() => {
                 if (currentBlackTime <= 0) room.blackTime = 0;
 
                 io.to(roomCode).emit('update_lobby', room);
+                saveRooms(); // Save on Timeout
             }
         }
     }
@@ -95,6 +124,7 @@ io.on('connection', (socket) => {
         socket.emit('room_created', { roomCode, isAdmin: true, adminToken, playerToken: adminToken });
         io.to(roomCode).emit('update_lobby', rooms[roomCode]);
         console.log(`Room ${roomCode} created by ${playerName}`);
+        saveRooms(); // Save on Create
     });
 
     // Helper: Safe Handler Wrapper (Prevents Crashes)
@@ -159,6 +189,7 @@ io.on('connection', (socket) => {
                 room.players.push(player);
                 // We will send this new token back
                 playerToken = newToken;
+                saveRooms(); // Save on New Player Join
             }
 
             socket.join(roomCode);
@@ -179,6 +210,7 @@ io.on('connection', (socket) => {
                     room.disconnectTimeout = null;
                     console.log(`Grace period cancelled for room ${roomCode}`);
                 }
+                saveRooms(); // Save on Admin Reconnect
             }
 
             // Send response (include playerToken for storage)
@@ -252,6 +284,7 @@ io.on('connection', (socket) => {
             if (player) {
                 room.slots[slot] = player;
                 io.to(roomCode).emit('update_lobby', room);
+                saveRooms();
             }
         }
     }));
@@ -264,6 +297,7 @@ io.on('connection', (socket) => {
             if (player) {
                 player.shineColor = color || null;
                 io.to(roomCode).emit('update_lobby', room);
+                saveRooms();
             }
         }
     }));
@@ -288,7 +322,12 @@ io.on('connection', (socket) => {
                     whitePlayerId: room.slots.white.id,
                     blackPlayerId: room.slots.black.id
                 });
+                io.to(roomCode).emit('game_started', {
+                    whitePlayerId: room.slots.white.id,
+                    blackPlayerId: room.slots.black.id
+                });
                 console.log(`Game started in room ${roomCode}`);
+                saveRooms(); // Save on Start Game
             } else {
                 socket.emit('error_message', 'Both slots must be filled to start.');
             }
@@ -315,6 +354,7 @@ io.on('connection', (socket) => {
                 }
 
                 io.to(roomCode).emit('update_lobby', room);
+                saveRooms();
             }
         }
     }));
@@ -362,6 +402,7 @@ io.on('connection', (socket) => {
 
                 // Update room for others
                 io.to(roomCode).emit('update_lobby', room);
+                saveRooms();
             }
         }
     }));
@@ -391,6 +432,7 @@ io.on('connection', (socket) => {
             });
             room.gameStarted = false;
             io.to(roomCode).emit('update_lobby', room);
+            saveRooms(); // Save on Resign
         }
     }));
 
@@ -436,6 +478,7 @@ io.on('connection', (socket) => {
                 });
                 room.gameStarted = false;
                 io.to(roomCode).emit('update_lobby', room); // SYNC FIX
+                saveRooms(); // Save on Timeout (Move Check)
                 return;
             }
 
@@ -447,6 +490,7 @@ io.on('connection', (socket) => {
 
             // Broadcast to ALL (including sender) to ensure Time Sync is perfect
             io.to(roomCode).emit('move_made', { move, fen, whiteTime: room.whiteTime, blackTime: room.blackTime });
+            saveRooms(); // Save on Move
         }
     }));
 
@@ -487,6 +531,7 @@ io.on('connection', (socket) => {
             });
             room.gameStarted = false;
             io.to(roomCode).emit('update_lobby', room); // SYNC FIX
+            saveRooms();
         }
     }));
 
@@ -535,6 +580,7 @@ io.on('connection', (socket) => {
                             io.to(roomCode).emit('room_closed');
                             delete rooms[roomCode];
                             console.log(`Room ${roomCode} closed (Admin left - Grace period ended)`);
+                            saveRooms(); // Save on Room Close
                         }
                     }, 60000); // 60 Seconds
                 } else {
@@ -586,11 +632,14 @@ io.on('connection', (socket) => {
                         }
 
                         io.to(roomCode).emit('update_lobby', room);
+                        saveRooms(); // Save on Abandonment Update
+
 
                         // If room is empty now, close it
                         if (room.players.length === 0) {
                             delete rooms[roomCode];
                             console.log(`Room ${roomCode} deleted (Game ended via abandonment & empty)`);
+                            saveRooms(); // Save on Room Delete
                         }
 
                     }, 60000); // 60 Seconds
@@ -619,11 +668,13 @@ io.on('connection', (socket) => {
                             if (!room.gameStarted) {
                                 delete rooms[roomCode];
                                 console.log(`Room ${roomCode} deleted (Last player left)`);
+                                saveRooms(); // Save on Delete
                             } else {
                                 console.log(`Room ${roomCode} retained causing pending game timeouts.`);
                             }
                         } else {
                             io.to(roomCode).emit('update_lobby', room);
+                            saveRooms(); // Save on Player Left
                         }
                     }
                 } else {

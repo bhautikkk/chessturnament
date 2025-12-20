@@ -832,6 +832,24 @@ socket.on('player_reconnected_game', ({ color }) => {
 });
 
 socket.on('error_message', (msg) => {
+    if (msg === 'Invalid Room Code') {
+        if (isGameActive) {
+            isGameActive = false;
+            if (timerInterval) clearInterval(timerInterval);
+            showModal("Game Session Terminated: Room no longer exists (Server may have restarted).", () => {
+                location.reload(); // Reload to clear state
+            });
+        } else {
+            // If in lobby/join screen
+            if (screens.join.classList.contains('active')) {
+                joinError.innerText = msg;
+            } else {
+                alert(msg);
+            }
+        }
+        return;
+    }
+
     if (screens.join.classList.contains('active')) {
         joinError.innerText = msg;
     } else {
@@ -1216,9 +1234,18 @@ function startTimers() {
 }
 
 function handleFlagFall(loser) {
-    isGameActive = false;
-    let winner = (loser === 'white') ? 'Black' : 'White';
-    turnIndicator.innerHTML = `Game Over: ${winner} wins on time!`;
+    // Passive Logic: Do NOT end game locally. Wait for server.
+    // Just show a status that we are waiting.
+    // isGameActive = false; // keep it active so we don't freeze interaction if it's lag
+    // However, timer is stopped at 0.
+
+    // Check if I am the one who lost?
+    // If local time says I lost, I probably lost.
+    // If local time says Opponent lost, it might be lag.
+
+    // We just update the text and wait.
+    let possibleWinner = (loser === 'white') ? 'Black' : 'White';
+    turnIndicator.innerHTML = `Time Expired. Syncing with Server...`;
 }
 
 function updateDashboardUI(curWhite = whiteTime, curBlack = blackTime) {
