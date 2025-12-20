@@ -1131,3 +1131,11 @@ input,
         transform: translateY(-5px);
     }
 }
+
+.game-header-logo {
+    width: 120px;
+    display: block;
+    margin: 0 auto 10px auto;
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.2));
+    /* Restore glow */
+}
