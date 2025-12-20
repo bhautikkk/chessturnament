@@ -946,68 +946,77 @@ socket.on('game_started', ({ whitePlayerId, blackPlayerId }) => {
     updateDashboardUI();  // NEW
 });
 
-socket.on('reconnect_game', ({ whitePlayerId, blackPlayerId, fen, whiteTime: wT, blackTime: bT, turn, whiteDisconnected, blackDisconnected }) => {
+socket.on('reconnect_game', ({ roomCode, whitePlayerId, blackPlayerId, whiteName, blackName, fen, whiteTime: wT, blackTime: bT, turn, whiteDisconnected, blackDisconnected }) => {
     isGameActive = true;
     showScreen('game');
-    gameRoomCodeDisplay.innerText = "Room: " + currentRoom.code;
 
-    // Determine Role & Names (Copied from game_started logic)
-    let opponentId = null;
-
-    if (myId === whitePlayerId) {
-        myColor = 'w';
-        opponentId = blackPlayerId;
-    } else if (myId === blackPlayerId) {
-        myColor = 'b';
-        opponentId = whitePlayerId;
-    } else {
-        myColor = null; // Spectator
-        opponentId = blackPlayerId;
+    // SAFETY: Use payload roomCode, avoid crashing if currentRoom is null
+    gameRoomCodeDisplay.innerText = "Room: " + roomCode;
+    if (!currentRoom) {
+        currentRoom = { code: roomCode, players: [] };
+        console.log("Recovered currentRoom from reconnect payload");
     }
 
-    // Set Names
+    // Determine Role
+    let myRoleStr = '';
+    if (myId === whitePlayerId) {
+        myColor = 'w';
+    } else if (myId === blackPlayerId) {
+        myColor = 'b';
+    } else {
+        myColor = null; // Spectator
+    }
+
+    // Helper for Name Formatting
+    const formatName = (name, isDisc) => isDisc ? `${name} (Reconnecting...)` : name;
+
+    const wNameDisplay = formatName(whiteName, whiteDisconnected);
+    const bNameDisplay = formatName(blackName, blackDisconnected);
+
+    // Update UI based on Role
     if (myColor === null) {
-        const whiteP = currentRoom.players.find(p => p.id === whitePlayerId);
-        const blackP = currentRoom.players.find(p => p.id === blackPlayerId);
+        // SPECTATOR: White at bottom, Black at top
+        myNameDisplay.innerText = wNameDisplay; // "My" side (Bottom)
+        oppNameDisplay.innerText = bNameDisplay; // "Opp" side (Top)
 
-        // Helper to update text with status
-        const getName = (p, isDisc) => {
-            if (!p) return "Waiting...";
-            return isDisc ? `${p.name} (Reconnecting...)` : p.name;
-        };
+        if (whiteDisconnected) myNameDisplay.style.color = '#ff4444';
+        else myNameDisplay.style.color = '';
 
-        const wName = getName(whiteP, whiteDisconnected);
-        const bName = getName(blackP, blackDisconnected);
-
-        myNameDisplay.innerText = wName;
-        oppNameDisplay.innerText = bName;
-
-        if (whiteDisconnected || blackDisconnected) {
-            // Optional: Style them red?
-            if (whiteDisconnected) myNameDisplay.style.color = '#ff4444';
-            if (blackDisconnected) oppNameDisplay.style.color = '#ff4444';
-        }
+        if (blackDisconnected) oppNameDisplay.style.color = '#ff4444';
+        else oppNameDisplay.style.color = '';
 
         if (actionControls) actionControls.classList.add('hidden');
-    } else {
-        const myPlayer = currentRoom.players.find(p => p.id === myId);
-        if (myPlayer) myNameDisplay.innerText = myPlayer.name;
+    }
+    else if (myColor === 'w') {
+        // I AM WHITE
+        myNameDisplay.innerText = wNameDisplay;
+        oppNameDisplay.innerText = bNameDisplay;
+
+        if (whiteDisconnected) myNameDisplay.style.color = '#ff4444';
+        else myNameDisplay.style.color = '';
+
+        if (blackDisconnected) oppNameDisplay.style.color = '#ff4444';
+        else oppNameDisplay.style.color = '';
+
         if (actionControls) actionControls.classList.remove('hidden');
+    }
+    else if (myColor === 'b') {
+        // I AM BLACK
+        myNameDisplay.innerText = bNameDisplay;
+        oppNameDisplay.innerText = wNameDisplay; // Opp is White
 
-        if (opponentId) {
-            const oppPlayer = currentRoom.players.find(p => p.id === opponentId);
-            const isOppDisc = (myColor === 'w') ? blackDisconnected : whiteDisconnected;
+        if (blackDisconnected) myNameDisplay.style.color = '#ff4444';
+        else myNameDisplay.style.color = '';
 
-            if (oppPlayer) {
-                oppNameDisplay.innerText = isOppDisc ? `${oppPlayer.name} (Reconnecting...)` : oppPlayer.name;
-                if (isOppDisc) oppNameDisplay.style.color = '#ff4444';
-            }
-        }
+        if (whiteDisconnected) oppNameDisplay.style.color = '#ff4444';
+        else oppNameDisplay.style.color = '';
+
+        if (actionControls) actionControls.classList.remove('hidden');
     }
 
     // Restore State
     game.load(fen);
-    whiteTime = wT; // Use exact float
+    whiteTime = wT;
     blackTime = bT;
 
     updateTurnIndicator();

@@ -207,8 +207,11 @@ io.on('connection', (socket) => {
                 const blackDisconnected = (blackP && blackP.disconnectGameTimeout !== null);
 
                 socket.emit('reconnect_game', {
+                    roomCode: roomCode,
                     whitePlayerId: whiteId,
                     blackPlayerId: blackId,
+                    whiteName: whiteP ? whiteP.name : 'White',
+                    blackName: blackP ? blackP.name : 'Black',
                     fen: room.fen,
                     whiteTime: currentWhiteTime,
                     blackTime: currentBlackTime,
