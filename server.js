@@ -198,18 +198,23 @@ io.on('connection', (socket) => {
                 // Check if any player is currently disconnected (in grace period)
                 const whiteP = room.slots.white;
                 const blackP = room.slots.black;
+
+                // SAFETY CHECK: Use optional chaining or defaults
+                const whiteId = whiteP ? whiteP.id : null;
+                const blackId = blackP ? blackP.id : null;
+
                 const whiteDisconnected = (whiteP && whiteP.disconnectGameTimeout !== null);
                 const blackDisconnected = (blackP && blackP.disconnectGameTimeout !== null);
 
                 socket.emit('reconnect_game', {
-                    whitePlayerId: room.slots.white.id,
-                    blackPlayerId: room.slots.black.id,
+                    whitePlayerId: whiteId,
+                    blackPlayerId: blackId,
                     fen: room.fen,
                     whiteTime: currentWhiteTime,
                     blackTime: currentBlackTime,
                     turn: room.turn,
-                    whiteDisconnected, // NEW
-                    blackDisconnected  // NEW
+                    whiteDisconnected,
+                    blackDisconnected
                 });
             }
 
@@ -242,12 +247,7 @@ io.on('connection', (socket) => {
         if (room && room.admin === socket.id) {
             const player = room.players.find(p => p.id === playerId);
             if (player) {
-                // If color is present, set it. If null, remove it (disable shine)
                 player.shineColor = color || null;
-                // isShining can still be used as a simple boolean flag if needed by client,
-                // but relying on shineColor being truthy is better.
-                // Let's keep isShining synced for backward compatibility if we want, or just drop it.
-                // Better: Client checks if (p.shineColor)
                 io.to(roomCode).emit('update_lobby', room);
             }
         }
@@ -281,7 +281,20 @@ io.on('connection', (socket) => {
         const room = rooms[roomCode];
         if (room && room.admin === socket.id) {
             if (room.slots[slot]) {
+                const removedPlayer = room.slots[slot];
                 room.slots[slot] = null;
+
+                // SAFETY: If game was active, removing a player must END the game
+                if (room.gameStarted) {
+                    const winner = (slot === 'white') ? 'Black' : 'White';
+                    io.to(roomCode).emit('game_over', {
+                        reason: 'Admin Removal',
+                        winner: winner,
+                        message: `Admin removed ${removedPlayer.name} from slot. ${winner} Wins!`
+                    });
+                    room.gameStarted = false;
+                }
+
                 io.to(roomCode).emit('update_lobby', room);
             }
         }
@@ -291,16 +304,43 @@ io.on('connection', (socket) => {
     socket.on('kick_player', ({ roomCode, playerId }) => {
         const room = rooms[roomCode];
         if (room && room.admin === socket.id) {
-            // Remove from slots if present
-            if (room.slots.white && room.slots.white.id === playerId) room.slots.white = null;
-            if (room.slots.black && room.slots.black.id === playerId) room.slots.black = null;
+
+            // Check if player is in a slot
+            let removedFromSlot = false;
+            let wasInGame = false;
+            let slotColor = null;
+
+            if (room.slots.white && room.slots.white.id === playerId) {
+                room.slots.white = null;
+                removedFromSlot = true;
+                if (room.gameStarted) { wasInGame = true; slotColor = 'white'; }
+            }
+            if (room.slots.black && room.slots.black.id === playerId) {
+                room.slots.black = null;
+                removedFromSlot = true;
+                if (room.gameStarted) { wasInGame = true; slotColor = 'black'; }
+            }
 
             // Remove from player list
             const index = room.players.findIndex(p => p.id === playerId);
             if (index !== -1) {
+                const kickedPlayer = room.players[index];
                 room.players.splice(index, 1);
+
                 // Notify kicked player
                 io.to(playerId).emit('kicked');
+
+                // If they were in an active game, END IT
+                if (wasInGame) {
+                    const winner = (slotColor === 'white') ? 'Black' : 'White';
+                    io.to(roomCode).emit('game_over', {
+                        reason: 'Admin Kick',
+                        winner: winner,
+                        message: `Admin kicked ${kickedPlayer.name}. ${winner} Wins!`
+                    });
+                    room.gameStarted = false;
+                }
+
                 // Update room for others
                 io.to(roomCode).emit('update_lobby', room);
             }
@@ -312,6 +352,17 @@ io.on('connection', (socket) => {
         const room = rooms[roomCode];
         if (room && room.gameStarted) {
             const resigningPlayer = room.players.find(p => p.id === socket.id);
+            if (!resigningPlayer) return; // Safety
+
+            // Determine winner based on who resigned. 
+            // Safety: Check slots exist
+            if (!room.slots.white || !room.slots.black) {
+                // Corruption check: Game started but slots empty?
+                room.gameStarted = false;
+                io.to(roomCode).emit('update_lobby', room);
+                return;
+            }
+
             const winnerColor = (room.slots.white.id === socket.id) ? 'Black' : 'White';
 
             io.to(roomCode).emit('game_over', {
@@ -319,8 +370,8 @@ io.on('connection', (socket) => {
                 winner: winnerColor,
                 message: `${resigningPlayer.name} resigned. ${winnerColor} wins!`
             });
-            room.gameStarted = false; // Or keep active for view? Better to stop.
-            io.to(roomCode).emit('update_lobby', room); // SYNC FIX
+            room.gameStarted = false;
+            io.to(roomCode).emit('update_lobby', room);
         }
     });
 
@@ -328,6 +379,14 @@ io.on('connection', (socket) => {
     socket.on('make_move', ({ roomCode, move, fen }) => {
         const room = rooms[roomCode];
         if (room && room.gameStarted) {
+            // SAFETY: Check slots
+            if (!room.slots.white || !room.slots.black) {
+                console.error("Game active but slots missing! Aborting game.");
+                room.gameStarted = false;
+                io.to(roomCode).emit('update_lobby', room);
+                return;
+            }
+
             const now = Date.now();
             const elapsed = (now - room.lastMoveTime) / 1000;
 
