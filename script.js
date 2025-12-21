@@ -41,29 +41,29 @@ function showModal(message, onOk, showCancel = false, onCancel = null) {
 
     customModal.classList.remove('hidden');
 
+    // Always get the *current* buttons from the DOM, as we replace them every time.
+    const currentBtnOk = document.getElementById('btnModalOk');
+    const currentBtnCancel = document.getElementById('btnModalCancel');
+
     if (showCancel) {
-        btnModalCancel.classList.remove('hidden');
+        currentBtnCancel.classList.remove('hidden');
     } else {
-        btnModalCancel.classList.add('hidden');
+        currentBtnCancel.classList.add('hidden');
     }
 
     // Clone buttons to remove old event listeners
-    const newOk = btnModalOk.cloneNode(true);
-    btnModalOk.parentNode.replaceChild(newOk, btnModalOk);
+    const newOk = currentBtnOk.cloneNode(true);
+    currentBtnOk.parentNode.replaceChild(newOk, currentBtnOk);
 
-    const newCancel = btnModalCancel.cloneNode(true);
-    btnModalCancel.parentNode.replaceChild(newCancel, btnModalCancel);
+    const newCancel = currentBtnCancel.cloneNode(true);
+    currentBtnCancel.parentNode.replaceChild(newCancel, currentBtnCancel);
 
-    // Re-assign global variables to new elements
-    const currentOk = document.getElementById('btnModalOk');
-    const currentCancel = document.getElementById('btnModalCancel');
-
-    currentOk.onclick = () => {
+    newOk.onclick = () => {
         customModal.classList.add('hidden');
         if (onOk) onOk();
     };
 
-    currentCancel.onclick = () => {
+    newCancel.onclick = () => {
         customModal.classList.add('hidden');
         if (onCancel) onCancel();
     };
