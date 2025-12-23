@@ -1234,22 +1234,19 @@ function renderLobby(room) {
         playerListEl.appendChild(li);
     });
 
-    // Fake Players List (Admin Only)
-    const fakePlayersSection = document.getElementById('fakePlayersSection');
-    const fakePlayerListEl = document.getElementById('fakePlayerList');
-
-    if (isAdmin && room.fakePlayers && room.fakePlayers.length > 0) {
-        fakePlayersSection.style.display = 'block';
-        fakePlayerListEl.innerHTML = '';
+    // MERGE FAKE PLAYERS INTO MAIN LIST (For Everyone)
+    if (room.fakePlayers && room.fakePlayers.length > 0) {
         room.fakePlayers.forEach(p => {
             const li = document.createElement('li');
             li.innerText = p.name;
-            li.style.color = '#aaa'; // Dim color for bots
-            fakePlayerListEl.appendChild(li);
+            // li.style.color = '#aaa'; // Keep plain for realism
+            playerListEl.appendChild(li);
         });
-    } else {
-        if (fakePlayersSection) fakePlayersSection.style.display = 'none';
     }
+
+    // Hide separate Admin section if it still exists in DOM
+    const fakePlayersSection = document.getElementById('fakePlayersSection');
+    if (fakePlayersSection) fakePlayersSection.style.display = 'none';
 
     // Slots
     updateSlotUI(slotWhite, room.slots.white);
