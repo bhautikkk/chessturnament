@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="spectator.css">
 </head>
 
 <body>
@@ -119,6 +120,10 @@
     <!-- 5. GAME CONTAINER (Existing) -->
     <div id="gameScreen" class="game-container hidden">
         <img src="header_logo.png" class="game-header-logo" alt="Chess Bird">
+        <div id="spectatorArea" class="spectator-area">
+            <span class="eye-icon">👁️</span>
+            <span id="spectatorCount">0</span>
+        </div>
         <!-- Opponent Dashboard (Top) -->
         <div class="player-dashboard top">
             <div class="player-left">

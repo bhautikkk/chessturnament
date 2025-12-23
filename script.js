@@ -943,6 +943,23 @@ socket.on('starting_countdown', ({ duration }) => {
     }
 });
 
+const spectatorCountEl = document.getElementById('spectatorCount');
+const spectatorArea = document.getElementById('spectatorArea');
+
+function updateSpectatorUI(room) {
+    if (!room) return;
+
+    // Calculate spectators
+    let activecount = 0;
+    if (room.slots.white) activecount++;
+    if (room.slots.black) activecount++;
+
+    // Total players - Active players
+    const spectators = Math.max(0, room.players.length - activecount);
+
+    if (spectatorCountEl) spectatorCountEl.innerText = spectators;
+}
+
 socket.on('update_lobby', (room) => {
     currentRoom = room;
 
@@ -960,6 +977,7 @@ socket.on('update_lobby', (room) => {
     }
 
     renderLobby(room);
+    updateSpectatorUI(room);
 });
 
 socket.on('game_started', ({ whitePlayerId, blackPlayerId, whiteTime: wT, blackTime: bT }) => {

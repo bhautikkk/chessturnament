@@ -1,0 +1,49 @@
+/* Spectator Area Styles */
+.spectator-area {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 8px 12px;
+    border-radius: 20px;
+    color: #fff;
+    font-weight: bold;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(5px);
+    z-index: 50;
+    transition: opacity 0.3s;
+}
+
+.spectator-area.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.eye-icon {
+    font-size: 1.2rem;
+    color: #81b64c;
+}
+
+#spectatorCount {
+    font-family: monospace;
+    font-size: 1.2rem;
+}
+
+@media (max-width: 600px) {
+    .spectator-area {
+        top: 10px;
+        right: 10px;
+        padding: 5px 10px;
+    }
+
+    .eye-icon {
+        font-size: 1rem;
+    }
+
+    #spectatorCount {
+        font-size: 1rem;
+    }
+}
